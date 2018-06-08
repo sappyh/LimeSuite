@@ -14,7 +14,7 @@ FREQS = np.concatenate([
     np.arange(500e6, 1e9, FREQ_STEP),
     np.arange(1e9, 2e9, FREQ_STEP),
     np.arange(2e9, 3e9, FREQ_STEP),
-    np.arange(3e9, 3.8e9, FREQ_STEP),
+    np.arange(3e9, 3.6e9, FREQ_STEP),
 ])
 TX_LO_OFS = 5.3e6
 TX_NCO = 2.1e6
@@ -42,11 +42,17 @@ def collectSweepData(argsStr, channel=0, calibrate=False, dumpDir=None):
     sdr = SoapySDR.Device(argsStr)
     rxStream = sdr.setupStream(SOAPY_SDR_RX, SOAPY_SDR_CF32, [channel], dict(skipCal='true'))
     rows = list()
+    hwInfo = sdr.getHardwareInfo()
+    print(sdr.getHardwareKey())
+    print(hwInfo)
 
     #constant settings, setup once
     if sdr.getDriverKey() == 'iris':
         sdr.setAntenna(SOAPY_SDR_RX, channel, "RX")
         sdr.setAntenna(SOAPY_SDR_TX, channel, "TRX")
+    elif sdr.getHardwareKey() == 'LimeSDR-USB':
+        sdr.setAntenna(SOAPY_SDR_RX, channel, "LNAH")
+        sdr.setAntenna(SOAPY_SDR_TX, channel, "BAND2")
     sdr.setSampleRate(SOAPY_SDR_RX, channel, SAMP_RATE)
     sdr.setSampleRate(SOAPY_SDR_TX, channel, SAMP_RATE)
     sdr.setBandwidth(SOAPY_SDR_RX, channel, BW)
