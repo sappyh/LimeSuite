@@ -9,12 +9,12 @@ from PlotUtils import *
 import time
 import os
 
-FREQ_STEP = 100e6
+FREQ_STEP = 150e6
 FREQS = np.concatenate([
-    np.arange(500e6, 1e9, FREQ_STEP),
+    np.arange(100e6, 1e9, FREQ_STEP),
     np.arange(1e9, 2e9, FREQ_STEP),
     np.arange(2e9, 3e9, FREQ_STEP),
-    np.arange(3e9, 3.6e9, FREQ_STEP),
+    np.arange(3e9, 3.8e9, FREQ_STEP),
 ])
 TX_LO_OFS = 5.3e6
 TX_NCO = 2.1e6
@@ -24,6 +24,7 @@ FFT_SIZE = 2048
 RX_DC_SETTLE = 0.3 #seconds is enough
 PAD = 20.0
 LNA = 30.0
+FREQ_CUTOFF = 2e9 #high/low transition
 
 CAL_PAD_LEVELS = dict()
 
@@ -47,28 +48,26 @@ def collectSweepData(argsStr, channel=0, calibrate=False, dumpDir=None):
     print(hwInfo)
 
     #constant settings, setup once
-    if sdr.getDriverKey() == 'iris':
-        sdr.setAntenna(SOAPY_SDR_RX, channel, "RX")
-        sdr.setAntenna(SOAPY_SDR_TX, channel, "TRX")
-    elif sdr.getHardwareKey() == 'LimeSDR-USB':
-        sdr.setAntenna(SOAPY_SDR_RX, channel, "LNAH")
-        sdr.setAntenna(SOAPY_SDR_TX, channel, "BAND2")
     sdr.setSampleRate(SOAPY_SDR_RX, channel, SAMP_RATE)
     sdr.setSampleRate(SOAPY_SDR_TX, channel, SAMP_RATE)
     sdr.setBandwidth(SOAPY_SDR_RX, channel, BW)
     sdr.setBandwidth(SOAPY_SDR_TX, channel, BW)
-    constKey = 'TSP_TSG_CONST' if sdr.getDriverKey() == 'iris' else 'TSP_CONST'
-    sdr.writeSetting(SOAPY_SDR_TX, channel, constKey, str(1 << 13))
+    sdr.writeSetting(SOAPY_SDR_TX, channel, 'TSP_CONST', str(1 << 13))
 
     #per frequency settings
     for freq in FREQS:
         print('Testing freq = %g MHz'%(freq/1e6))
         sdr.setGain(SOAPY_SDR_TX, channel, 'PAD', PAD)
+        sdr.setGain(SOAPY_SDR_TX, channel, 'IAMP', 12 if freq >= 3e9 else 0)
         sdr.setGain(SOAPY_SDR_RX, channel, 'LNA', LNA)
+        sdr.setGain(SOAPY_SDR_RX, channel, 'TIA', 0)
         sdr.setFrequency(SOAPY_SDR_RX, channel, "RF", freq)
         sdr.setFrequency(SOAPY_SDR_TX, channel, "RF", freq+TX_LO_OFS)
         sdr.setFrequency(SOAPY_SDR_RX, channel, 'BB', 0.0)
         sdr.setFrequency(SOAPY_SDR_TX, channel, 'BB', 0.0)
+
+        sdr.setAntenna(SOAPY_SDR_RX, channel, "LNAH" if freq >= FREQ_CUTOFF else "LNAL")
+        sdr.setAntenna(SOAPY_SDR_TX, channel, "BAND1" if freq >= FREQ_CUTOFF else "BAND2")
 
         #calibrate PAD
         if freq in CAL_PAD_LEVELS:
@@ -76,29 +75,19 @@ def collectSweepData(argsStr, channel=0, calibrate=False, dumpDir=None):
         else:
             psRx = getRxPowerSpectrum(sdr, rxStream, FFT_SIZE)
             rxLvl = MeasureTonePower(psRx, SAMP_RATE, TX_LO_OFS)
-            newPad = PAD+(-20-rxLvl) #-20db tone level
-            if newPad > 50: newPad = 50 #clip
+            MAX_LVL = -10 #avoid rx saturation, max RX tone level dbfs
+            newPad = min(50, PAD+(MAX_LVL-rxLvl)) if rxLvl < MAX_LVL else PAD
             sdr.setGain(SOAPY_SDR_TX, channel, 'PAD', newPad)
             CAL_PAD_LEVELS[freq] = newPad #save for next time
             print('orig level = %g dB, new PAD value = %g dB'%(rxLvl, newPad))
 
         if calibrate:
-            sdr.writeSetting(SOAPY_SDR_RX, channel, 'CALIBRATE', str(BW))
-            #tx cal can fail due to weak pad gain for internal loopback
-            #try higher gains to get it to pass if it initially fails
-            keepGoing = True
-            while keepGoing:
-                try:
-                    sdr.writeSetting(SOAPY_SDR_TX, channel, 'CALIBRATE', str(BW))
-                    break
-                except:
-                    pad = sdr.getGain(SOAPY_SDR_TX, channel, 'PAD') + 5
-                    if pad > 50: keepGoing = False
-                    print('Failed to cal, trying pad = %g dB'%(pad))
-                    sdr.setGain(SOAPY_SDR_TX, channel, 'PAD', pad)
-            else:
-                raise Exception('Failed to cal tx, gain problems...')
-            sdr.setGain(SOAPY_SDR_TX, channel, 'PAD', CAL_PAD_LEVELS[freq]) #restore
+            try:
+                sdr.writeSetting(SOAPY_SDR_RX, channel, 'CALIBRATE', str(BW))
+                sdr.writeSetting(SOAPY_SDR_TX, channel, 'CALIBRATE', str(BW))
+            except Exception as ex:
+                print('Failed to cal %f MHz - %s'%(freq/1e6, str(ex)))
+            sdr.setGain(SOAPY_SDR_TX, channel, 'PAD', CAL_PAD_LEVELS[freq]-10) #cal makes the gain 10dB higher
 
         #intentionally disable digital removal to measure the analog removal
         sdr.setDCOffsetMode(SOAPY_SDR_RX, channel, False)
