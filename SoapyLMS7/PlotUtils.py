@@ -109,6 +109,31 @@ class LocalFigure(object):
             self.fig.suptitle(title, fontsize=16, horizontalalignment='left', x=0.01)
         self.fig.subplots_adjust(hspace=.5, top=.85)
 
+    def addTimePlot(self, axnum, traces, rate, title=None, xlabel='Time (ms)', ylabel='Amplitude (units)', xscale=1e-3, ylim=None):
+        ax = self.fig.add_subplot(self.nrows, self.ncols, axnum)  # specify (nrows, ncols, axnum)
+        ax.grid(True)
+        if title: ax.set_title(title, fontsize=10)
+        if xlabel: ax.set_xlabel(xlabel, fontsize=10)
+        if ylabel: ax.set_ylabel(ylabel, fontsize=10)
+
+        for trace in traces:
+            numSamps = len(trace)
+            timeScale = np.arange(0, numSamps/(rate*xscale), 1/(rate*xscale))[:numSamps]
+
+            if hasattr(trace, 'shape') and len(trace.shape) > 1 and trace.shape[1] == 2:
+                ax.plot(timeScale, [x[0] for x in trace])
+                ax.plot(timeScale, [x[1] for x in trace])
+                ax.set_ylim(-(1<<15), +(1<<15))
+            elif np.iscomplex(trace[0]):
+                ax.plot(timeScale, np.real(trace))
+                ax.plot(timeScale, np.imag(trace))
+                ax.set_ylim(-1.0, +1.0)
+            else:
+                ax.plot(timeScale, trace)
+                ax.set_ylim(-1.0, +1.0)
+
+        if ylim is not None: ax.set_ylim(*ylim)
+
     def addFreqPlot(self, axnum, traces, rate, title=None,
         xlabel='Freq (MHz)', ylabel='Power (dBfs)',
         xscale=1e6, refLvl=0.0, plotNoise=True, centerFreq=0.0, dynRange=100,
