@@ -35,6 +35,8 @@ using namespace lime;
 
 ConnectionRemote::ConnectionRemote(const char *comName)
 {
+    CloseRemote();
+    remoteIP = std::string(comName);
     socketFd = -1;
 #ifndef __unix__
     WSADATA wsaData;
@@ -73,9 +75,8 @@ bool ConnectionRemote::IsOpen(void)
 
 int ConnectionRemote::Open()
 {
-    string ip = "127.0.0.1";
     if (socketFd < 0)
-        return Connect(ip.c_str(), 5000);
+        return Connect(remoteIP.c_str(), 5000);
     return 0;
 }
 

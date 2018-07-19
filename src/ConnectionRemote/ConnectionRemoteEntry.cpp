@@ -28,12 +28,11 @@ std::vector<ConnectionHandle> ConnectionRemoteEntry::enumerate(const ConnectionH
 {
     std::vector<ConnectionHandle> result;
 
-        ConnectionHandle handle;
-        handle.media = "TCP";
-        handle.name = "Remote";
-        handle.addr = "127.0.0.1:5000";
-        if(hint.addr.length() == 0 || hint.addr == handle.addr)
-            result.push_back(handle);
+    ConnectionHandle handle;
+    handle.media = "TCP";
+    handle.name = "Remote";
+    handle.addr = hint.addr;
+    result.push_back(handle);
 
     return result;
 }

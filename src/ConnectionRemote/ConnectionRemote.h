@@ -46,6 +46,7 @@ private:
     int Open();
     void Close(void);
     std::mutex mTransferLock;
+    std::string remoteIP;
 };
 
 class ConnectionRemoteEntry : public ConnectionRegistryEntry
