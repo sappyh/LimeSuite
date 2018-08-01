@@ -428,6 +428,7 @@ public:
     LMS7002M_RegistersMap *BackupRegisterMap(void);
     void RestoreRegisterMap(LMS7002M_RegistersMap *backup);
 
+    uint32_t GetRSSI(RSSI_measurements *measurements = nullptr);
 protected:
     bool mCalibrationByMCU;
     MCU_BD *mcuControl;
@@ -443,7 +444,6 @@ protected:
     void BackupAllRegisters();
     void RestoreAllRegisters();
     
-    uint32_t GetRSSI(RSSI_measurements *measurements = nullptr);
     uint32_t GetAvgRSSI(const int avgCount);
     void SetRxDCOFF(int8_t offsetI, int8_t offsetQ);
     void CalibrateRxDC();

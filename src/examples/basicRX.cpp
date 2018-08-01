@@ -50,7 +50,7 @@ int main(int argc, char** argv)
         error();
 
     //Set center frequency to 800 MHz
-    if (LMS_SetLOFrequency(device, LMS_CH_RX, 0, 800e6) != 0)
+    if (LMS_SetLOFrequency(device, LMS_CH_RX, 0, 2.48e9) != 0)
         error();
 
     //Set sample rate to 8 MHz, ask to use 2x oversampling in RF
@@ -60,8 +60,8 @@ int main(int argc, char** argv)
 
     //Enable test signal generation
     //To receive data from RF, remove this line or change signal to LMS_TESTSIG_NONE
-    if (LMS_SetTestSignal(device, LMS_CH_RX, 0, LMS_TESTSIG_NCODIV8, 0, 0) != 0)
-        error();
+    // if (LMS_SetTestSignal(device, LMS_CH_RX, 0, LMS_TESTSIG_NCODIV8, 0, 0) != 0)
+    //     error();
 
     //Streaming Setup
 

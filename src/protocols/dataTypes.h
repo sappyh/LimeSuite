@@ -10,7 +10,7 @@ struct FPGA_DataPacket
 {
     uint8_t reserved[8];
     uint64_t counter;
-    uint8_t data[4080];
+    uint8_t data[3056];
 };
 
 struct complex16_t
@@ -20,7 +20,8 @@ struct complex16_t
 };
 
 const int samples12InPkt = 1360;
-const int samples16InPkt = 1020; 
+// const int samples16InPkt = 1020;
+const int samples16InPkt = 764; 
 
 class SamplesPacket
 {

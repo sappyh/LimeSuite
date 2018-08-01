@@ -15,6 +15,8 @@
 #include <memory>
 #include <thread>
 #include <ciso646>
+#include <fstream>
+#include <sys/time.h>
 
 #ifndef __unix__
 #include "windows.h"
@@ -114,6 +116,8 @@ protected:
     int FinishDataSending(const char* buffer, uint32_t length, int contextHandle) override;
     void AbortSending(int ep) override;
 
+  
+
     int ResetStreamBuffers() override;
     eConnectionType GetType(void) {return USB_PORT;}
     
@@ -152,6 +156,8 @@ protected:
     bool bulkCtrlInProgress;
     bool bulkCtrlAvailable;
     std::mutex mExtraUsbMutex;
+
+    //Timing variables
 };
 
 class ConnectionFX3Entry : public ConnectionRegistryEntry
